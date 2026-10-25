@@ -25,6 +25,13 @@ func configuredDiffContext(contextMode string) ui.DiffContextMode {
 	return ui.DiffContextChangesOnly
 }
 
+func configuredSidebarLocation(position string) ui.SidebarLocation {
+	if position == config.SidebarLocationRight {
+		return ui.SidebarRight
+	}
+	return ui.SidebarLeft
+}
+
 func (a *App) ReloadSettings() {
 	s := config.LoadSettings()
 	a.ApplySettings(s)
@@ -145,6 +152,10 @@ func (a *App) ApplySettings(s config.Settings) {
 	a.applyIcons(s.Appearance)
 	a.applyGrammarSettings(s.Editor.Grammars)
 
+	if a.SplitPanel.SidebarPosition != configuredSidebarLocation(s.Sidebar.Location) {
+		a.SplitPanel.InvalidatePointerInteraction()
+		a.SplitPanel.SidebarPosition = configuredSidebarLocation(s.Sidebar.Location)
+	}
 	if a.Explorer != nil && (a.Explorer.Settings != s.Explorer || a.Explorer.Icons != s.Appearance.Icons) {
 		a.Explorer.Settings = s.Explorer
 		a.Explorer.Icons = s.Appearance.Icons

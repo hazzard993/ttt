@@ -257,3 +257,24 @@ func TestReopeningTinyPanelResetsSize(t *testing.T) {
 		t.Fatalf("panel size = %dx%d, want 20x%d", a.ContentSplit.BottomH, a.ContentSplit.RightW, ui.DefaultPanelWidth)
 	}
 }
+
+func TestSidebarPositionRestoresAndApplies(t *testing.T) {
+	config.OverrideConfigDir = t.TempDir()
+	t.Cleanup(func() { config.OverrideConfigDir = "" })
+	settings := config.DefaultSettings()
+	settings.Sidebar.Location = config.SidebarLocationRight
+	a := buildTestApp(t, settings)
+	if a.SplitPanel.SidebarPosition != ui.SidebarRight {
+		t.Fatal("sidebar did not start on right")
+	}
+	settings.Sidebar.Location = config.SidebarLocationLeft
+	a.ApplySettings(settings)
+	if a.SplitPanel.SidebarPosition != ui.SidebarLeft {
+		t.Fatal("sidebar did not move left")
+	}
+	settings.Sidebar.Location = config.SidebarLocationRight
+	a.ApplySettings(settings)
+	if a.SplitPanel.SidebarPosition != ui.SidebarRight {
+		t.Fatal("sidebar did not move right")
+	}
+}

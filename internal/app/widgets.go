@@ -330,6 +330,7 @@ func BuildAppFromConfig(cfg *config.AppConfig, borders *term.BorderSet, ws *work
 	sidebar.Borders = borders
 
 	splitPanel := ui.NewSplitPanelWidget()
+	splitPanel.SidebarPosition = configuredSidebarLocation(cfg.Settings.Sidebar.Location)
 	splitPanel.Left = sidebar
 	splitPanel.Right = contentSplit
 	splitPanel.Borders = borders

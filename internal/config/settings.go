@@ -15,6 +15,7 @@ var (
 	GitFileViews        = []string{"tree", "list"}
 	IconModes           = []string{IconsNerdFont, IconsNone}
 	ScrollbarGlyphModes = []string{ScrollbarGlyphsBlocks, ScrollbarGlyphsLegacy}
+	SidebarLocations    = []string{SidebarLocationLeft, SidebarLocationRight}
 )
 
 const (
@@ -28,6 +29,8 @@ const (
 	IconsNerdFont         = "nerd-font"
 	ScrollbarGlyphsBlocks = "blocks"
 	ScrollbarGlyphsLegacy = "legacy"
+	SidebarLocationLeft   = "left"
+	SidebarLocationRight  = "right"
 )
 
 type TerminalSettings struct {
@@ -290,10 +293,13 @@ type SidebarSettings struct {
 	PanelOrder          []string `json:"panelOrder,omitempty"`
 	Width               int      `json:"width,omitempty"`
 	CommitHistoryHeight int      `json:"commitHistoryHeight,omitempty"`
+	Location            string   `json:"location,omitempty"`
 }
 
 func DefaultSidebarSettings() SidebarSettings {
-	return SidebarSettings{}
+	return SidebarSettings{
+		Location: "left",
+	}
 }
 
 type PanelSettings struct {
@@ -492,6 +498,9 @@ func normalizeSettings(s *Settings) {
 	}
 	if s.Sidebar.CommitHistoryHeight < 0 {
 		s.Sidebar.CommitHistoryHeight = 0
+	}
+	if !slices.Contains(SidebarLocations, s.Sidebar.Location) {
+		s.Sidebar.Location = ""
 	}
 	s.Appearance.migrateChevrons()
 	if !slices.Contains(DiffModes, s.Editor.DiffMode) {
