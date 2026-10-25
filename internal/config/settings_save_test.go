@@ -26,6 +26,7 @@ func TestSaveSettingsRoundTrips(t *testing.T) {
 	s.Sidebar.PanelOrder = []string{"changes", "plugin.todo", "explorer"}
 	s.Sidebar.Width = 22
 	s.Sidebar.CommitHistoryHeight = 17
+	s.Sidebar.Location = SidebarLocationRight
 	s.Git.FileView = GitFileViewTree
 	s.Appearance.Icons = IconsNone
 	enabled := false
@@ -52,6 +53,9 @@ func TestSaveSettingsRoundTrips(t *testing.T) {
 	}
 	if got.Sidebar.CommitHistoryHeight != 17 {
 		t.Errorf("sidebar.commitHistoryHeight = %d, want 17", got.Sidebar.CommitHistoryHeight)
+	}
+	if got.Sidebar.Location != SidebarLocationRight {
+		t.Errorf("sidebar.location = %q, want right", got.Sidebar.Location)
 	}
 	if got.Git.FileView != GitFileViewTree {
 		t.Errorf("git.fileView = %q, want %q", got.Git.FileView, GitFileViewTree)

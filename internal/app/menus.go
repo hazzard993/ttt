@@ -316,9 +316,8 @@ func handleRightClick(app *App, mx, my int) {
 	}
 
 	if app.Sidebar.Visible {
-		divX := app.SplitPanel.DividerScreenX()
-		if mx < divX {
-			sidebarR := app.Sidebar.GetRect()
+		sidebarR := app.Sidebar.GetRect()
+		if mx >= sidebarR.X && mx < sidebarR.X+sidebarR.W {
 			if my > sidebarR.Y+1 {
 				ev := tcell.NewEventMouse(mx, my, tcell.Button2, 0)
 				if w := app.Sidebar.ActiveWidget(); w != nil {

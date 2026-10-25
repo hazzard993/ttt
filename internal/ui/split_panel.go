@@ -10,6 +10,13 @@ import (
 
 const DefaultSidebarWidth = 30
 
+type SidebarLocation int
+
+const (
+	SidebarLeft SidebarLocation = iota
+	SidebarRight
+)
+
 // MinSidebarWidth is the minimum width below which the sidebar resets to
 // DefaultSidebarWidth when toggled back on. This prevents the sidebar from
 // reopening at an unusably small width after being dragged nearly closed.
@@ -22,6 +29,7 @@ type SplitPanelWidget struct {
 	DividerPos                int
 	Borders                   *term.BorderSet
 	ShowLeft                  bool
+	SidebarPosition           SidebarLocation
 	RightBorderStartY         int
 	OnResize                  func(width int)
 	OnResizeEnd               func()
@@ -70,6 +78,10 @@ func (s *SplitPanelWidget) Render(surface Surface) {
 	}
 
 	divX := s.clampedDividerX(w)
+	if s.SidebarPosition == SidebarRight {
+		s.renderSidebarRight(surface, w, h, b, bs)
+		return
+	}
 
 	// Top border — left side only: ┌───┐
 	surface.SetCell(0, 0, term.Cell{Ch: b.TopLeft, Style: bs})
@@ -216,7 +228,7 @@ func (s *SplitPanelWidget) HandleEvent(ev tcell.Event) EventResult {
 	if s.dragging {
 		if pressed {
 			if s.OnResize != nil {
-				newWidth := mx - r.X - 1
+				newWidth := s.widthAt(mx)
 				s.OnResize(newWidth)
 			}
 			return EventCaptured
@@ -234,7 +246,7 @@ func (s *SplitPanelWidget) HandleEvent(ev tcell.Event) EventResult {
 				s.pendingResize = false
 				s.dragging = true
 				if mx != s.pendingResizeX && s.OnResize != nil {
-					s.OnResize(mx - r.X - 1)
+					s.OnResize(s.widthAt(mx))
 				}
 			}
 			return EventCaptured
@@ -243,7 +255,7 @@ func (s *SplitPanelWidget) HandleEvent(ev tcell.Event) EventResult {
 		if moved {
 			s.dragging = true
 			if mx != s.pendingResizeX && s.OnResize != nil {
-				s.OnResize(mx - r.X - 1)
+				s.OnResize(s.widthAt(mx))
 			}
 			s.endDrag()
 			return EventCaptured
@@ -288,18 +300,18 @@ func (s *SplitPanelWidget) HandleEvent(ev tcell.Event) EventResult {
 
 	if s.ShowLeft {
 		divX := s.DividerScreenX()
-		slog.Debug("splitPanel", "action", "route", "mx", mx, "divX", divX, "showLeft", true)
+		slog.Debug("splitPanel", "action", "route", "mx", mx, "divX", divX, "showSidebar", true)
 		if freshClick && mx == divX && s.OnResize != nil {
 			s.dragging = true
 			return EventCaptured
 		}
-		if freshClick && mx == divX+1 && s.OnResize != nil {
+		if freshClick && mx == divX+1 && s.SidebarPosition != SidebarRight && s.OnResize != nil {
 			s.pendingResize = true
 			s.pendingResizeX = mx
 			s.pendingResizeY = my
 			return EventCaptured
 		}
-		if mx < divX {
+		if (s.SidebarPosition != SidebarRight && mx < divX) || (s.SidebarPosition == SidebarRight && mx > divX) {
 			if s.Left != nil {
 				result := s.Left.HandleEvent(ev)
 				slog.Debug("splitPanel", "action", "leftChild", "result", result)
@@ -333,7 +345,7 @@ func (s *SplitPanelWidget) HandleEvent(ev tcell.Event) EventResult {
 			}
 		}
 	} else {
-		if freshClick && mx == r.X {
+		if freshClick && ((s.SidebarPosition != SidebarRight && mx == r.X) || (s.SidebarPosition == SidebarRight && mx == r.X+r.W-1)) {
 			s.dragging = true
 			return EventCaptured
 		}
@@ -376,9 +388,15 @@ func (s *SplitPanelWidget) OverDivider(mx, my int) bool {
 		return false
 	}
 	if !s.ShowLeft {
+		if s.SidebarPosition == SidebarRight {
+			return mx == r.X+r.W-1
+		}
 		return mx == r.X
 	}
 	divX := s.DividerScreenX()
+	if s.SidebarPosition == SidebarRight {
+		return mx == divX
+	}
 	return mx >= divX && mx <= divX+1
 }
 
@@ -386,7 +404,65 @@ func (s *SplitPanelWidget) Dragging() bool { return s.dragging }
 
 func (s *SplitPanelWidget) DividerScreenX() int {
 	r := s.GetRect()
+	if s.SidebarPosition == SidebarRight {
+		return r.X + r.W - 1 - s.clampedDividerX(r.W)
+	}
 	return r.X + s.clampedDividerX(r.W)
+}
+
+func (s *SplitPanelWidget) widthAt(mx int) int {
+	r := s.GetRect()
+	if s.SidebarPosition == SidebarRight {
+		return r.X + r.W - mx - 2
+	}
+	return mx - r.X - 1
+}
+
+func (s *SplitPanelWidget) renderSidebarRight(surface Surface, w, h int, b term.BorderSet, bs term.Style) {
+	r := s.GetRect()
+	divX := s.DividerScreenX() - r.X
+	for x := 1; x < w-1; x++ {
+		surface.SetCell(x, h-1, term.Cell{Ch: b.Horizontal, Style: bs})
+	}
+	surface.SetCell(0, h-1, term.Cell{Ch: b.BottomLeft, Style: bs})
+	surface.SetCell(divX, h-1, term.Cell{Ch: b.BottomTee, Style: bs})
+	surface.SetCell(w-1, h-1, term.Cell{Ch: b.BottomRight, Style: bs})
+	surface.SetCell(divX, 0, term.Cell{Ch: b.TopLeft, Style: bs})
+	for x := divX + 1; x < w-1; x++ {
+		surface.SetCell(x, 0, term.Cell{Ch: b.Horizontal, Style: bs})
+	}
+	surface.SetCell(w-1, 0, term.Cell{Ch: b.TopRight, Style: bs})
+	for y := 1; y < h-1; y++ {
+		surface.SetCell(divX, y, term.Cell{Ch: b.Vertical, Style: bs})
+		surface.SetCell(w-1, y, term.Cell{Ch: b.Vertical, Style: bs})
+	}
+	for _, child := range []struct {
+		widget Widget
+		rect   Rect
+	}{
+		{s.Left, Rect{X: divX + 1, Y: 1, W: w - divX - 2, H: h - 2}},
+		{s.Right, Rect{X: 1, W: divX - 1, H: h - 1}},
+	} {
+		if child.widget != nil {
+			cr := child.rect
+			child.widget.SetRect(Rect{X: r.X + cr.X, Y: r.Y + cr.Y, W: cr.W, H: cr.H})
+			child.widget.Render(surface.Sub(cr))
+		}
+	}
+	s.renderBottomJunction(surface, r.X, w, h, b, bs)
+	start := s.RightBorderStartY
+	if start < h-1 {
+		surface.SetCell(0, start, term.Cell{Ch: b.TopLeft, Style: bs})
+	}
+	for y := start + 1; y < h-1; y++ {
+		surface.SetCell(0, y, term.Cell{Ch: b.Vertical, Style: bs})
+	}
+	if provider, ok := s.Right.(borderJunctionProvider); ok {
+		y := provider.BorderJunctions().RightY - r.Y
+		if y >= 0 && y < h-1 {
+			surface.SetCell(divX, y, term.Cell{Ch: b.RightTee, Style: bs})
+		}
+	}
 }
 
 func (s *SplitPanelWidget) endDrag() {

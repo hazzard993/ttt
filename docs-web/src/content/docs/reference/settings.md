@@ -143,6 +143,7 @@ All editor settings are nested under the `editor` key.
 | `sidebar.panelOrder` | string[] | built-in order | Initial sidebar panel-header order. Unknown plugin panel IDs are retained until that plugin loads. |
 | `sidebar.width` | int | `30` | Initial sidebar width in columns. |
 | `sidebar.commitHistoryHeight` | int | proportional | Initial height of the commit history in the Changes panel, in rows. |
+| `sidebar.location` | string | `"left"` | Initial location of the sidebar in relation to the editor's location. |
 
 These are starting values. Once you drag a header, resize the sidebar, the commit history, or the panel, the new layout is saved to `state.json` next to `settings.json` and takes precedence. Delete `state.json` to return to these values.
 

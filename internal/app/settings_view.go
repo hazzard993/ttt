@@ -181,6 +181,10 @@ func settingsCategories() []settingsCategory {
 				SetInt: func(s *config.Settings, v int) { s.Markdown.WrapWidth = v }},
 		}},
 		{Title: "Sidebar", Fields: []settingField{
+			section("General"),
+			{Label: "Location", Kind: settingEnum, Options: sidebarLocationItems,
+				GetString: func(s *config.Settings) string { return s.Sidebar.Location },
+				SetString: func(s *config.Settings, v string) { s.Sidebar.Location = v }},
 			section("Files"),
 			{Label: "Hidden files", Kind: settingBool,
 				GetBool: func(s *config.Settings) bool { return s.Explorer.ShowHidden },
@@ -277,6 +281,13 @@ func scrollbarGlyphItems() []widgets.SelectItem {
 	return []widgets.SelectItem{
 		{ID: config.ScrollbarGlyphsBlocks, Label: "Blocks"},
 		{ID: config.ScrollbarGlyphsLegacy, Label: "Legacy Computing"},
+	}
+}
+
+func sidebarLocationItems() []widgets.SelectItem {
+	return []widgets.SelectItem{
+		{ID: config.SidebarLocationLeft, Label: "Left"},
+		{ID: config.SidebarLocationRight, Label: "Right"},
 	}
 }
 
